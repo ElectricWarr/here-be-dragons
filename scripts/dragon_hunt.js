@@ -275,9 +275,7 @@ function updateHotspotPositions() {
   document.querySelectorAll('.marker').forEach((marker) => {
     const i = parseInt(marker.dataset.index);
     const data = percentageHotspots[i];
-    console.log("before ret");
     if (!data) return;
-    console.log("after ret");
 
     const [px, py, pr] = data;
     const x = px * renderedWidth;
