@@ -161,8 +161,7 @@ hotspots.forEach(([x, y, r], i) => {
       marker.style.border    = '3px solid lime';
       marker.style.boxShadow = '0 0 10px lime';
 
-      // if (score === hotspots.length) {
-      if (score === 1) {
+      if (score === hotspots.length) {
         clearInterval(interval);
         complete.innerHTML = `You found all ${hotspots.length} dragons in ${formatTime(timer)}!</br>🎉`;
         complete.style.display = 'block';
