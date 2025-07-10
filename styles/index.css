@@ -21,7 +21,7 @@ body {
   touch-action: none;
 }
 #game-container {
-  position: absolute;
+  position: relative;
   top: 0;
   left: 0;
   transform-origin: top left;
@@ -45,7 +45,7 @@ body {
   z-index: 3;
 }
 #complete {
-  font-size: 3em;
+  font-size: 2em;
   color: white;
   display: none;
   position: absolute;

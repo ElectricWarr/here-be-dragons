@@ -72,6 +72,12 @@ let velocityX = 0, velocityY = 0;
 let momentumId = null;
 let percentageHotspots = []; // Initialized when image loads
 
+window.addEventListener("load", () => {
+  updateHotspotPositions();
+  console.log("Page loaded");
+});
+
+// Calculate image size only after image is loaded
 image.addEventListener('load', () => {
   imageNaturalWidth = image.naturalWidth;
   imageNaturalHeight = image.naturalHeight;
@@ -86,11 +92,10 @@ image.addEventListener('load', () => {
 
   console.log("Image loaded");
 });
-
-
-window.addEventListener("load", () => {
-  console.log("Page loaded");
-});
+// If we missed the image load event, fire it manually
+if (image.complete && image.naturalWidth) {
+  image.dispatchEvent(new Event('load'));
+}
 
 // Functions
 
@@ -116,7 +121,7 @@ function resetZoom() {
 }
 
 function applyTransform() {
-  container.style.transform = `scale(${zoomLevel}) translate(${offsetX}px, ${offsetY}px)`;
+  image.style.transform = `scale(${zoomLevel}) translate(${offsetX}px, ${offsetY}px)`;
   updateHotspotPositions();
 }
 
@@ -156,8 +161,10 @@ hotspots.forEach(([x, y, r], i) => {
       marker.style.border    = '3px solid lime';
       marker.style.boxShadow = '0 0 10px lime';
 
-      if (score === hotspots.length) {
+      // if (score === hotspots.length) {
+      if (score === 1) {
         clearInterval(interval);
+        complete.innerHTML = `You found all ${hotspots.length} dragons in ${formatTime(timer)}!</br>🎉`;
         complete.style.display = 'block';
         image.classList.add('faded');
         document.querySelectorAll('.marker').forEach(m => m.classList.add('hidden-marker'));
@@ -255,26 +262,112 @@ frame.addEventListener('touchmove', (e) => {
 }, { passive: false });
 
 // Manage relative hotspot positions
+// function updateHotspotPositions() {
+//   const rect = image.getBoundingClientRect();
+
+//   document.querySelectorAll('.marker').forEach((marker) => {
+//     const i = parseInt(marker.dataset.index);
+//     const data = percentageHotspots[i];
+//     if (!data) return;
+
+//     const [px, py, pr] = data;
+//     const x = rect.left + px * rect.width;
+//     const y = rect.top + py * rect.height;
+//     const r = pr * rect.width;
+
+//     marker.style.width  = `${r*2}px`;
+//     marker.style.height = `${r*2}px`;
+//     marker.style.left   = `${x-r}px`;
+//     marker.style.top    = `${y-r}px`;
+//   });
+// }
+// function updateHotspotPositions() {
+//   const imageRect = image.getBoundingClientRect();
+//   const gameRect = game.getBoundingClientRect();
+
+//   const imageX = image.offsetLeft;
+//   const imageY = image.offsetTop;
+
+//   const renderedWidth = image.clientWidth;
+//   const renderedHeight = image.clientHeight;
+
+//   document.querySelectorAll('.marker').forEach((marker) => {
+//     const i = parseInt(marker.dataset.index);
+//     const data = percentageHotspots[i];
+//     if (!data) return;
+
+//     const [px, py, pr] = data;
+//     const x = imageX + px * renderedWidth;
+//     const y = imageY + py * renderedHeight;
+//     const r = pr * renderedWidth;
+
+//     marker.style.width = `${r * 2}px`;
+//     marker.style.height = `${r * 2}px`;
+//     marker.style.left = `${x - r}px`;
+//     marker.style.top = `${y - r}px`;
+//   });
+// }
+// function updateHotspotPositions() {
+//   const imageRect = image.getBoundingClientRect();
+//   const containerRect = container.getBoundingClientRect();
+
+//   const offsetX = imageRect.left - containerRect.left;
+//   const offsetY = imageRect.top - containerRect.top;
+
+//   const renderedWidth = imageRect.width;
+//   const renderedHeight = imageRect.height;
+
+//   document.querySelectorAll('.marker').forEach((marker) => {
+//     const i = parseInt(marker.dataset.index);
+//     const data = percentageHotspots[i];
+//     if (!data) return;
+
+//     const [px, py, pr] = data;
+//     const x = offsetX + px * renderedWidth;
+//     const y = offsetY + py * renderedHeight;
+//     const r = pr * renderedWidth;
+
+//     marker.style.width = `${r * 2}px`;
+//     marker.style.height = `${r * 2}px`;
+//     marker.style.left = `${x - r}px`;
+//     marker.style.top = `${y - r}px`;
+//   });
+// }
 function updateHotspotPositions() {
-  const renderedWidth = image.clientWidth;
-  const renderedHeight = image.clientHeight;
+  const imageRect     = image.getBoundingClientRect();
+  const containerRect = container.getBoundingClientRect();
+
+  // Position of the image relative to the container
+  const offsetX = imageRect.left - containerRect.left;
+  const offsetY = imageRect.top - containerRect.top;
+
+  const renderedWidth = imageRect.width;
+  const renderedHeight = imageRect.height;
 
   document.querySelectorAll('.marker').forEach((marker) => {
     const i = parseInt(marker.dataset.index);
     const data = percentageHotspots[i];
-    if (!data) return; // Avoid destructuring undefined
+    console.log("before ret");
+    if (!data) return;
+    console.log("after ret");
 
     const [px, py, pr] = data;
     const x = px * renderedWidth;
     const y = py * renderedHeight;
     const r = pr * renderedWidth;
 
-    marker.style.width  = `${r*2}px`;
-    marker.style.height = `${r*2}px`;
-    marker.style.left   = `${x-r}px`;
-    marker.style.top    = `${y-r}px`;
+    // Apply marker position relative to image inside container
+    marker.style.width = `${r * 2}px`;
+    marker.style.height = `${r * 2}px`;
+    marker.style.left = `${offsetX + x - r}px`;
+    marker.style.top = `${offsetY + y - r}px`;
   });
 }
 
+
 // Update Hotspots on window resize
-window.addEventListener('resize', updateHotspotPositions);
+let resizeTimeout;
+window.addEventListener('resize', () => {
+  clearTimeout(resizeTimeout);
+  resizeTimeout = setTimeout(updateHotspotPositions, 10);
+});
