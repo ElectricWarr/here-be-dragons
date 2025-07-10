@@ -53,8 +53,6 @@ const complete = document.getElementById('complete');
 const game = document.getElementById('game');
 const container = document.getElementById('game-container');
 const frame = document.getElementById('game-frame');
-const imageNaturalWidth = image.naturalWidth;
-const imageNaturalHeight = image.naturalHeight;
 
 // Game Data
 let score = parseInt(localStorage.getItem('dragon_score')) || 0;
@@ -65,25 +63,32 @@ scoreSpan.textContent = score;
 timerSpan.textContent = formatTime(timer);
 
 // Image Info & Manipulation Setup
+let imageNaturalWidth = 1;
+let imageNaturalHeight = 1;
 let zoomLevel = 1;
 let offsetX = 0, offsetY = 0;
 let isPanning = false, startX = 0, startY = 0;
 let velocityX = 0, velocityY = 0;
 let momentumId = null;
-
-const percentageHotspots = hotspots.map(([x, y, r]) => [
-  x / imageNaturalWidth,
-  y / imageNaturalHeight,
-  r / imageNaturalWidth
-]);
+let percentageHotspots = []; // Initialized when image loads
 
 image.addEventListener('load', () => {
+  imageNaturalWidth = image.naturalWidth;
+  imageNaturalHeight = image.naturalHeight;
+
+  percentageHotspots = hotspots.map(([x, y, r]) => [
+    x / imageNaturalWidth,
+    y / imageNaturalHeight,
+    r / imageNaturalWidth
+  ]);
+
   updateHotspotPositions();
+
   console.log("Image loaded");
 });
 
-window.addEventListener("load", (event) => {
-  updateHotspotPositions();
+
+window.addEventListener("load", () => {
   console.log("Page loaded");
 });
 
@@ -124,29 +129,32 @@ let interval = setInterval(() => {
 
 // Handle dragon-finding (clicking)
 hotspots.forEach(([x, y, r], i) => {
-  const foundKey = `dragon_found_${i}`;
-  if (localStorage.getItem(foundKey)) return;
-
+  const storageKey = `dragon_found_${i}`;
   const marker = document.createElement('div');
+
+  marker.dataset.index = i;
   marker.className = 'marker';
   marker.style.width  = `${r*2}px`;
   marker.style.height = `${r*2}px`;
-  marker.style.width  = `${r*2}px`;
   marker.style.left   = `${x-r}px`;
   marker.style.top    = `${y-r}px`;
-  marker.style.borderColor = '3px solid lime';
-  marker.style.boxShadow   = '0 0 10px lime';
-  game.appendChild(marker);
+  container.appendChild(marker);
+
+  if (localStorage.getItem(storageKey)) {
+    marker.style.border    = '3px solid lime';
+    marker.style.boxShadow = '0 0 10px lime';
+    return;
+  }
 
   marker.addEventListener('click', (e) => {
     e.preventDefault();
-    if (!localStorage.getItem(foundKey)) {
-      localStorage.setItem(foundKey, 'true');
+    if (!localStorage.getItem(storageKey)) {
+      localStorage.setItem(storageKey, 'true');
       score++;
       scoreSpan.textContent = score;
       localStorage.setItem('dragon_score', score);
-      marker.style.borderColor = '3px solid lime';
-      marker.style.boxShadow   = '0 0 10px lime';
+      marker.style.border    = '3px solid lime';
+      marker.style.boxShadow = '0 0 10px lime';
 
       if (score === hotspots.length) {
         clearInterval(interval);
@@ -165,6 +173,7 @@ hotspots.forEach(([x, y, r], i) => {
 function resetGame() {
   localStorage.removeItem('dragon_score');
   localStorage.removeItem('dragon_timer');
+  hotspots.forEach((_, j) => localStorage.removeItem(`dragon_found_${j}`));
   location.reload();
 }
 
@@ -250,8 +259,12 @@ function updateHotspotPositions() {
   const renderedWidth = image.clientWidth;
   const renderedHeight = image.clientHeight;
 
-  document.querySelectorAll('.marker').forEach((marker, i) => {
-    const [px, py, pr] = percentageHotspots[i];
+  document.querySelectorAll('.marker').forEach((marker) => {
+    const i = parseInt(marker.dataset.index);
+    const data = percentageHotspots[i];
+    if (!data) return; // Avoid destructuring undefined
+
+    const [px, py, pr] = data;
     const x = px * renderedWidth;
     const y = py * renderedHeight;
     const r = pr * renderedWidth;
